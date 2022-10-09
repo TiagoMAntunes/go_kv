@@ -21,7 +21,7 @@ func get_all_values(ctx *fiber.Ctx) error {
 
 	res, err := json.Marshal(db.kv)
 	if err != nil {
-		return err
+		return fiber.ErrInternalServerError
 	}
 
 	return ctx.Send(res)
@@ -29,17 +29,20 @@ func get_all_values(ctx *fiber.Ctx) error {
 
 func get_value(ctx *fiber.Ctx) error {
 	db.mu.RLock()
-	db.mu.RUnlock()
+	defer db.mu.RUnlock()
 
 	key := ctx.Params("value")
-	value := db.kv[key]
+	value, err := db.kv[key]
+	if err != true {
+		return fiber.ErrNotFound
+	}
 
 	return ctx.SendString(fmt.Sprintf("{ \"%s\": \"%s\" }", key, value))
 }
 
 type NewValue struct {
-	key   string `json:"key" xml:"key" form:"key"`
-	value string `json:"value" xml:"value" form:"value"`
+	Key   string `json:"key" xml:"key" form:"key"`
+	Value string `json:"value" xml:"value" form:"value"`
 }
 
 func post_value(ctx *fiber.Ctx) error {
@@ -49,27 +52,28 @@ func post_value(ctx *fiber.Ctx) error {
 		return err
 	}
 
-	fmt.Printf("Data: %s %s\n", v.key, v.value)
-
 	db.mu.Lock()
-	db.mu.Unlock()
+	defer db.mu.Unlock()
 
-	db.kv[v.key] = v.value
+	db.kv[v.Key] = v.Value
 
 	res, err := json.Marshal(v)
 	if err != nil {
-		return err
+		return fiber.ErrInternalServerError
 	}
 
 	return ctx.Send(res)
 }
 
 func delete_value(ctx *fiber.Ctx) error {
-	return ctx.SendString("delete values!")
-}
+	key := ctx.Params("value")
 
-func update_value(ctx *fiber.Ctx) error {
-	return ctx.SendString("update values!")
+	db.mu.Lock()
+	defer db.mu.Unlock()
+
+	delete(db.kv, key)
+
+	return nil
 }
 
 func main() {
@@ -83,7 +87,6 @@ func main() {
 	api.Get("/value/:value", get_value)
 	api.Post("/value", post_value)
 	api.Delete("/value/:value", delete_value)
-	api.Put("/value/:value", update_value)
 
 	app.Mount("/api/", api)
 
