@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/utils"
 )
 
 type SafeMap struct {
@@ -55,7 +56,10 @@ func post_value(ctx *fiber.Ctx) error {
 	db.mu.Lock()
 	defer db.mu.Unlock()
 
-	db.kv[v.Key] = v.Value
+	key := utils.CopyString(v.Key)
+	value := utils.CopyString(v.Value)
+
+	db.kv[key] = value
 
 	res, err := json.Marshal(v)
 	if err != nil {

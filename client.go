@@ -31,13 +31,11 @@ func parse_response(resp *http.Response, err error) string {
 func get_entry(ctx *cli.Context) error {
 	key := ctx.String("key")
 
-	fmt.Printf("Get %s\n", key)
-
 	url := fmt.Sprintf("http://localhost:3000/api/value/%s", key)
 
 	resp, err := http.Get(url)
 
-	fmt.Println("Data: ", parse_response(resp, err))
+	fmt.Println(parse_response(resp, err))
 
 	return nil
 }
@@ -47,7 +45,7 @@ func list_entries(ctx *cli.Context) error {
 
 	resp, err := http.Get(url)
 
-	fmt.Println("Data: ", parse_response(resp, err))
+	fmt.Println(parse_response(resp, err))
 
 	return nil
 }
