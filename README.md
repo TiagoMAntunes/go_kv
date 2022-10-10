@@ -1,3 +1,3 @@
 # Basic Key Value server
 
-Just practicing some go
+A sample Key Value server with a CLI interface
