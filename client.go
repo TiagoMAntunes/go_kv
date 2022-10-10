@@ -2,22 +2,53 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"log"
+	"net/http"
+	"net/url"
 	"os"
 
 	"github.com/urfave/cli/v2"
 )
+
+// Panics if there is any error
+func parse_response(resp *http.Response, err error) string {
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	defer resp.Body.Close()
+
+	data, err := io.ReadAll(resp.Body)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return string(data)
+}
 
 func get_entry(ctx *cli.Context) error {
 	key := ctx.String("key")
 
 	fmt.Printf("Get %s\n", key)
 
+	url := fmt.Sprintf("http://localhost:3000/api/value/%s", key)
+
+	resp, err := http.Get(url)
+
+	fmt.Println("Data: ", parse_response(resp, err))
+
 	return nil
 }
 
 func list_entries(ctx *cli.Context) error {
-	fmt.Println("List...")
+	url := "http://localhost:3000/api/values"
+
+	resp, err := http.Get(url)
+
+	fmt.Println("Data: ", parse_response(resp, err))
+
 	return nil
 }
 
@@ -25,16 +56,32 @@ func add_entry(ctx *cli.Context) error {
 	key := ctx.String("key")
 	value := ctx.String("value")
 
-	fmt.Printf("Add %s: %s\n", key, value)
+	data := url.Values{
+		"key":   {key},
+		"value": {value},
+	}
 
+	resp, err := http.PostForm("http://localhost:3000/api/value", data)
+
+	parse_response(resp, err)
 	return nil
 }
 
 func remove_entry(ctx *cli.Context) error {
 	key := ctx.String("key")
-	value := ctx.String("value")
 
-	fmt.Printf("Remove %s: %s\n", key, value)
+	req, err := http.NewRequest(http.MethodDelete, fmt.Sprintf("http://localhost:3000/api/value/%s", key), nil)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	client := &http.Client{}
+
+	resp, err := client.Do(req)
+
+	parse_response(resp, err)
+
 	return nil
 }
 
@@ -58,7 +105,6 @@ func main() {
 				Action:  remove_entry,
 				Flags: []cli.Flag{
 					&cli.StringFlag{Name: "key", Aliases: []string{"k"}, Required: true},
-					&cli.StringFlag{Name: "value", Aliases: []string{"v"}, Required: true},
 				},
 			},
 			{
